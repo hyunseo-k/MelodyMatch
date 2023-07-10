@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <h2>Additional Information</h2>
+  <form method="post">
+    {% csrf_token %}
+    <div class="form-group">
+      <label for="id_favorite_genres">Favorite Genres:</label>
+      <select name="favorite_genres" required id="id_favorite_genres" multiple style="width: 300px; height: 200px;">
+        <!-- 옵션들을 추가하세요 -->
+      </select>
+    </div>
+    <button type="submit" class="btn btn-primary">Submit</button>
+  </form>
+{% endblock %}
