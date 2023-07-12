@@ -7,13 +7,17 @@ from .models import *
 from django.http import JsonResponse, HttpResponse
 import json
 import time
-from django.contrib.auth.hashers import make_password
+from django.contrib.auth.hashers import make_password, check_password
 import os
+from django.views.decorators.csrf import csrf_exempt
+from django.views.generic.base import View
 
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework import generics
 from rest_framework.generics import ListAPIView
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from django.contrib.auth import authenticate
 
 from .serializers import *
 
@@ -31,18 +35,24 @@ from .serializers import *
 #     except:
 #         return Response('등록에 실패하였습니다')
 
-# @api_view(['POST'])
-# def login(request):
-#     id = request.data.get('id')
-#     pw = request.data.get('pw')
-#     user = User.objects.filter(username=id).first()
 
-#     if user and user.check_password(pw):
-#         request.session['user_id'] = user.id
-#         request.session['username'] = user.username
-#         return Response('로그인에 성공하였습니다')
-#     else:
-#         return Response('로그인에 실패하였습니다')
+@api_view(['GET'])
+def login(request):
+    if request.method == 'GET':
+        id = request.GET.get('email')
+        pw = request.GET.get('password')
+
+        user = User.objects.get(username=id)
+
+        print(user.password)
+        print(pw)
+
+        if user is not None and check_password(pw, user.password):
+            request.session['user_id'] = user.id
+            request.session['username'] = user.username
+            return JsonResponse({"status": 200, "message": "로그인에 성공하였습니다."})
+        else:
+            return JsonResponse({"status": 501, "message": "로그인에 실패하였습니다."})
 
 
 @api_view(['GET', 'POST'])
@@ -65,18 +75,11 @@ def test(request):
         except:
             return Response('등록에 실패하였습니다')
 
-def check_password(user, input_word): # 비밀번호 확인
-    password = user.password
-
-    if input_word == password:
-        return True 
-    else:
-        return False
-
 # email 중복검사 : 1.1번
 def user_idcheck(request):
     if request.method == "GET":
         id = request.GET.get('email')
+        print(id)
         try:
             user = User.objects.get(username=id)
             response_data = {
@@ -88,71 +91,62 @@ def user_idcheck(request):
             }
         return JsonResponse(response_data)
 
-##로그인
+
+@csrf_exempt
+@api_view(['GET', 'POST'])
+def register_view(request):
+    if request.method == "POST":
+        body = json.loads(request.body)
+        id = body.get('email')
+        pw = body.get('password')
+        avatar = body.get('avatar')
+        gender = body.get('gender')
+
+        try:
+            user = User.objects.get(username=id)
+            response_data = {'status': 501}
+            return JsonResponse(response_data)
+        except User.DoesNotExist:
+            user = User(username=id, password=pw, avatar=avatar, gender=gender)
+            user.save()
+            response_data = {'status': 200}
+            return JsonResponse(response_data)
+
+    return JsonResponse({}, status=501)
 
 @api_view(['GET'])
 def login_view(request):
-
-    print(os.getcwd())
     email = request.GET.get('email')
     password = request.GET.get('password')
 
-    print(email, password)
-
     try:
-        print("dd")
-        qs = User.objects.filter(username=email)
-        print(qs.count())
-        for item in qs:
-            print(item)
-
         user = User.objects.get(username=email)
-        print(email, password)
-        if user and check_password(user,password): # db와 비교 
+
+        if user and password == user.password:
             # 로그인 성공
+            request.user = user
             avatar = user.avatar
             gender = user.gender
-            fav_genre = user.fav_genre
-            # fav_playlist = []
-            #fav_genre = []
-            #friends = []
-            
+            age = user.age
+
             response_data = {
                 "email": email,
                 "avatar": avatar,
                 "gender": gender,
-                "fav_genre": fav_genre
+                "age": age,
             }
-        else: ##로그인 실패 (아이디는 있는데 pw 틀림)
+            return JsonResponse(response_data)
+        else:
+            # 로그인 실패
             response_data = {
                 "email": '',
                 "avatar": 0,
                 "gender": '기본',
-                "fav_genre": 0
-            }
-        return JsonResponse(response_data)
-    except:
-        response_data={}
-        return JsonResponse(response_data, status=501)
-
-def register_view(request):
-    if request.method =="POST":
-        body = json.loads(request.body)
-        id = body.get('email')
-        pw = body.get('password')
-        try:
-            user = User.objects.get(username=id)
-            response_data={
-                'status':501
+                "age": 0,
             }
             return JsonResponse(response_data)
-        except User.DoesNotExist:
-            response_data ={
-                'status':200
-            }
-            user = User(username=id, password = pw)
-            user.save()
-            return JsonResponse(response_data)
+    except User.DoesNotExist:
+        return JsonResponse({}, status=501)
 
 @api_view(['GET'])
 def recommended_friends_list(request):
@@ -163,50 +157,20 @@ def recommended_friends_list(request):
     # 해당 사용자의 추천 친구 목록을 가져올 수 있습니다.
     user = User.objects.get(username=email)
     friends = [friend.username for friend in user.friends.all()]
-    recommended_friends = [u.username for u in User.objects.exclude(username__in=friends).exclude(username=email).filter(fav_genre=user.fav_genre)]
+    recommended_friends = [u.username for u in User.objects.exclude(username__in=friends).exclude(username=email).filter(avatar=user.av)]
     return Response(recommended_friends)
 
-# def signup(request):
-#     if request.method == 'POST':
-#         form = SignUpForm(request.POST)
-#         if form.is_valid():
-#             user = form.save(commit=False)
-#             user.save()
-            
-#             # AdditionalInfoForm에서 age 필드를 가져와서 user_profile 생성
-#             age = request.POST.get('age')
-#             print(user)
-#             user_profile = User.objects.create(user = user, age=age)
-            
-#             request.session['user_id'] = user_profile.id
-#             return redirect('polls:additional_info')
-#     else:
-#         form = SignUpForm()
-#     return render(request, 'signup.html', {'form': form})
-
-@login_required
-def additional_info(request):
-    user_id = request.session.get('user_id')
-    user = get_object_or_404(User, id=user_id)
-    if user_id is None:
-        return redirect('polls:signup')
-
-    user = User.objects.get(id=user_id)
-    if request.method == 'POST':
-        form = AdditionalInfoForm(request.POST)
-        if form.is_valid():
-            user_profile = form.save(commit=False)
-            user_profile.user = user
-            user_profile.save()
-            del request.session['user_id']
-            return redirect('polls:profile')
-    else:
-        form = AdditionalInfoForm()
-    return render(request, 'additional_info.html', {'form': form})
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def user_playlist_view(request):
+    user = request.user
+    playlists = Playlist.objects.filter(user=user)
+    serializer = PlaylistSerializer(playlists, many=True)
+    return Response(serializer.data)
 
 @login_required
 def profile(request):
-    user_profile = UserProfile.objects.get(user=request.user)
+    user_profile = User.objects.get(user=request.user)
     context = {'user_profile': user_profile}
     return render(request, 'profile.html', context)
 
@@ -217,9 +181,17 @@ class UserProfileAPIView(generics.RetrieveAPIView):
         return self.request.user.userprofile
 
 
-class FriendListAPIView(generics.ListAPIView):
-    queryset = Friend.objects.all()  # Modify this queryset based on your requirements
-    serializer_class = FriendSerializer
+class FriendListAPIView(View):
+    def get(self, request):
+        user_email = 't1@gmail.com'
+        try:
+            user = User.objects.get(username=user_email)
+            friend_list = Friend.objects.filter(user=user).values('id', 'user', 'avatar', 'favoriteSongs')
+            return JsonResponse(list(friend_list), safe=False)
+        except User.DoesNotExist:
+            return JsonResponse({}, status=404)
+
+
 
 
 class PlaylistListCreateView(generics.ListCreateAPIView):
@@ -228,3 +200,12 @@ class PlaylistListCreateView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+
+class UserPlaylistAPIView(generics.ListAPIView):
+    serializer_class = PlaylistSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        return Playlist.objects.filter(user=user)
