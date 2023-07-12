@@ -15,6 +15,9 @@ Key Features:
 사용 기술:
 React Native Expo
 Django REST Framework
+
 React Navigation
+
 API 통신
+
 사용자 인증 및 소셜 로그인 SDK
