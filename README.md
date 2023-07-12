@@ -1,12 +1,12 @@
 # MelodyMatch
 <img src = "https://github.com/hyunseo-k/MelodyMatch/assets/79782180/f8aeb9a5-dc3b-4bfe-82f0-5fd33876fb29" width="30%" height = "30%" >
 <br>
+<br>
 
 MelodyMatch는 음악 소셜 네트워크 서비스입니다.
 사용자들은 MelodyMatch를 통해 서로의 음악 취향을 공유하고 소통할 수 있습니다.
 MelodyMatch를 사용하여 음악을 즐기고 다른 사용자들과 소통하며 음악 관련 커뮤니티에 참여해보세요.
 
-<br>
 <br>
 
 2023 여름 몰입캠프 공통과제 2(2023.07.06. ~ 2023.07.12.)을 수행한 결과물입니다.
