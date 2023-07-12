@@ -6,7 +6,7 @@ MelodyMatch는 음악 소셜 네트워크 서비스입니다.
 MelodyMatch를 사용하여 음악을 즐기고 다른 사용자들과 소통하며 음악 관련 커뮤니티에 참여해보세요.
 
 
-Key Features:
+##Key Features:
 
 회원가입: 새로운 계정을 생성하고 MelodyMatch의 회원이 되세요.
 
@@ -23,7 +23,7 @@ Key Features:
 추천: MelodyMatch가 사용자들에게 음악 및 친구 추천을 제공합니다.
 
 
-사용 기술:
+##사용 기술:
 
 React Native Expo
 
